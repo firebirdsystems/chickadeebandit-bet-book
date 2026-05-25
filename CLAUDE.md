@@ -7,13 +7,14 @@ This document covers the patterns all apps in this monorepo follow. Read it befo
 The hub injects these globals into every app at runtime:
 
 ```js
-const CONTEXT    = window.__CONTEXT_URL    ?? "";  // fetch family context (members, etc.)
-const DB         = window.__DB_URL         ?? "";  // SQL database endpoint
-const STORE      = window.__STORE_URL      ?? "";  // key-value store (older apps)
-const FILES      = window.__FILES_URL      ?? "";  // file upload endpoint
-const APP_ID     = window.__APP_ID         ?? "my-app";
-const ME         = window.__CURRENT_MEMBER ?? null; // { id, name, role }
-const EVENTS_URL = window.__EVENTS_URL     ?? "/api/events";
+const CONTEXT         = window.__CONTEXT_URL    ?? "";  // fetch family context (members, etc.)
+const DB              = window.__DB_URL         ?? "";  // SQL database endpoint
+const STORE           = window.__STORE_URL      ?? "";  // key-value store
+const FILES           = window.__FILES_URL      ?? "";  // file upload endpoint
+const CROSS_WRITE_URL = window.__CROSS_WRITE_URL ?? ""; // cross-app writes (hub-sdk crossWrite uses this)
+const APP_ID          = window.__APP_ID         ?? "my-app";
+const ME              = window.__CURRENT_MEMBER ?? null; // { id, name, role }
+const EVENTS_URL      = window.__EVENTS_URL     ?? "/api/events";
 ```
 
 `ME` is null in demo mode (no logged-in user). Always guard against it.
@@ -247,6 +248,117 @@ const uploadHtml = window.__FILES_URL ? `<div class="upload-area">…</div>` : "
 ```
 
 Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`, `image/heic`, `image/heif`, `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (docx), `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (xlsx), `text/plain`, `text/markdown`.
+
+## Cross-app data sharing
+
+Apps can read and write each other's KV store data. Both sides must declare intent in their manifests; the hub enforces both at runtime.
+
+### Exposing data to other apps
+
+Declare the KV keys you want to make readable (or writable) by other apps:
+
+```json
+{
+  "exports": ["recipes", "pending_items"]
+}
+```
+
+Export key names must be lowercase alphanumeric, hyphens, or underscores.
+
+### Reading another app's exported key
+
+Declare the key in `data_access.reads` using the pattern `app.{appId}.{key}`:
+
+```json
+{
+  "data_access": {
+    "reads": ["family.members", "app.recipes.recipes"],
+    "writes": []
+  }
+}
+```
+
+Then fetch it the same way as any context key:
+
+```js
+const res = await fetch(`${CONTEXT}?keys=app.recipes.recipes`);
+const data = await res.json();
+const recipes = data["app.recipes.recipes"] ?? [];
+```
+
+The hub returns the parsed JSON value of the source app's KV entry for that key. Returns `null` if the key hasn't been written yet.
+
+### Writing to another app's exported key
+
+Declare the key in `data_access.writes`:
+
+```json
+{
+  "data_access": {
+    "reads": [],
+    "writes": ["app.grocery.pending_items"]
+  }
+}
+```
+
+Then use `crossWrite` from `/hub-sdk.js`:
+
+```js
+import { crossWrite } from "/hub-sdk.js";
+
+await crossWrite("grocery", "pending_items", [
+  { op: "array_append", path: "items", value: { name: "Flour", addedBy: "Meal Planner" } },
+  { op: "array_append", path: "items", value: { name: "Eggs",  addedBy: "Meal Planner" } },
+]);
+```
+
+`crossWrite` uses the same patch ops as the KV store PATCH endpoint: `array_append`, `array_remove`, `set`, `increment`, `delete`. The `path` is a dotted path within the JSON blob stored at the key.
+
+Writes count against the **calling** app's daily write quota, not the target app's.
+
+### The inbox pattern (for `storage: db` apps)
+
+DB-storage apps can't receive writes directly into their SQL schema. Instead, expose a KV key as an inbox, then drain it on load:
+
+```js
+async function processPendingInbox() {
+  if (!STORE) return;
+  try {
+    const res = await fetch(`${STORE}?key=pending_items`);
+    if (!res.ok) return;
+    const { value } = await res.json();
+    if (!value) return;
+    const pending = JSON.parse(value).items ?? [];
+    if (!pending.length) return;
+
+    for (const item of pending) {
+      const name = typeof item.name === "string" ? item.name.trim() : "";
+      if (!name) continue;
+      await db(`INSERT INTO items (...) VALUES (...)`, [...])
+        .catch(() => {}); // silently ignore duplicates
+    }
+
+    await fetch(`${STORE}?key=pending_items`, { method: "DELETE" });
+  } catch { /* non-fatal */ }
+}
+```
+
+Call it during init before loading your main data:
+
+```js
+(async () => {
+  await loadMembers();
+  await processPendingInbox(); // drain inbox first
+  await loadItems();
+  render();
+})();
+```
+
+The inbox key must be listed in `exports`. Keep inbox processing non-fatal — always wrap in try/catch and never let it block the app from loading.
+
+### Permission escalation
+
+When an app update **adds** new cross-app reads, writes, or exports, the hub automatically queues the update for admin approval even if `requires_approval` is `false` in the manifest. The admin will see a callout in the update review screen explaining what new access was added.
 
 ## Resource limits
 

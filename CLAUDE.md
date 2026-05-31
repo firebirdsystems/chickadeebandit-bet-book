@@ -508,6 +508,46 @@ Use a short label (1–2 words). Never omit this field — apps without it are i
 
 Every app sets `<base href="/run/{app-id}/">` in `<head>` so relative asset paths resolve correctly inside the hub iframe.
 
+## Extracting testable logic
+
+Apps with non-trivial pure logic should extract it into `src/logic.js` so it can be unit-tested without a browser environment.
+
+**Pattern:**
+
+1. `src/shared.js` — mirrors any `hub-sdk.js` functions used by logic (e.g. `isAdult`, `esc`). Tests import from here instead of the browser-only SDK.
+
+2. `src/logic.js` — exports pure functions. Import from `shared.js`, not `/hub-sdk.js`:
+
+```js
+import { isAdult } from "./shared.js";
+export { isAdult };
+
+export function canSeeItem(item, me) {
+  if (isAdult(me)) return true;
+  return item.visibility === "public";
+}
+```
+
+3. `src/index.html` — imports from both `/hub-sdk.js` (browser globals) and `./logic.js` (pure functions). Use aliased imports to avoid shadowing if you wrap them with local state:
+
+```js
+import { esc, isAdult, hubConfirm } from "/hub-sdk.js";
+import { canSeeItem as _canSeeItem } from "./logic.js";
+
+// thin wrapper that binds to app state
+function canSeeItem(item) { return _canSeeItem(item, ME); }
+```
+
+4. `__tests__/logic.test.mjs` — imports from `../src/logic.js`. No DOM, no mocks needed for pure functions.
+
+**When to extract logic:**
+- Access control checks (who can see/edit/vote)
+- Derived status or computed values from raw data
+- Non-trivial filtering or sorting
+- Date/money formatting with edge cases
+
+**When not to:** DB calls, render functions, event handlers, and anything that closes over module-level state belong in the HTML script and don't need extraction.
+
 ## Demo mode
 
 When `DB` and `CONTEXT` are empty strings (local development or demo), the app should work with hardcoded demo data. Never crash or show an error when these are missing — show sample data instead.

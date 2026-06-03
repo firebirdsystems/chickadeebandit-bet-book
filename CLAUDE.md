@@ -61,8 +61,24 @@ import { memberColor, initial, esc, isAdult, hubConfirm, formatRelativeDate, fmt
 - `hubConfirm({ message, description?, confirmLabel?, destructive? })` — async confirm dialog; returns true/false
 - `fmtMoney(cents)` — format integer cents as USD with no decimals: `fmtMoney(125000)` → `"$1,250"`. Returns `"—"` for null.
 - `fmtMoneyShort(cents)` — compact format for large amounts: `$450K`, `$1.3M`. Use for summary displays.
+- `createStreamHelper(streamUrl, eventType, callback)` — opens an SSE connection to `window.__STREAM_URL` and calls `callback(event)` for each event. Auto-reconnects on close. Returns `{ connect(), disconnect() }`. Pass `null` as `eventType` to receive all event types.
 
 Always use `esc()` when rendering user-provided strings into HTML templates.
+
+### Updating hub-sdk.js
+
+`hub-sdk.js` exists in three places that must all be kept in sync whenever a function is added or changed:
+
+1. `app-template/hub-sdk.js` — canonical source. `dev.mjs` fetches this file from GitHub to serve during local development. **This is the file to edit.**
+2. Root `hub-sdk.js` (one level up from `app-template/`) — convenience copy used as a reference; keep identical to `app-template/hub-sdk.js`.
+3. `packages/hub/public/hub-sdk.js` in the **chickadeebandit** repo — the file actually served to apps at runtime in production. Must be updated to match or new SDK functions won't be available in the deployed hub.
+
+After editing `app-template/hub-sdk.js`, copy it to the other two locations:
+
+```bash
+cp app-template/hub-sdk.js hub-sdk.js
+cp app-template/hub-sdk.js ../chickadeebandit/packages/hub/public/hub-sdk.js
+```
 
 ## Loading members
 

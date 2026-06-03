@@ -318,3 +318,42 @@ export function createEventPoller(eventsUrl, eventType, callback, intervalMs = 3
   timer = setInterval(poll, intervalMs);
   return () => clearInterval(timer);
 }
+
+/**
+ * createStreamHelper(streamUrl, eventType, callback)
+ * Opens an SSE connection to the hub stream endpoint and calls callback(event)
+ * for each matching event. Auto-reconnects on close (handles Vercel's 55s cutoff).
+ * Returns { connect(), disconnect() }.
+ *
+ * Use: const stream = createStreamHelper(window.__STREAM_URL, "stroke", onStroke);
+ *      stream.connect();
+ *      // later: stream.disconnect();
+ */
+export function createStreamHelper(streamUrl, eventType, callback) {
+  let es = null;
+  let stopped = false;
+
+  function connect() {
+    if (!streamUrl || stopped) return;
+    const url = eventType
+      ? `${streamUrl}?type=${encodeURIComponent(eventType)}`
+      : streamUrl;
+    es = new EventSource(url);
+    es.addEventListener("event", (e) => {
+      try { callback(JSON.parse(e.data)); } catch { /* skip malformed */ }
+    });
+    es.onerror = () => {
+      es?.close();
+      es = null;
+      if (!stopped) setTimeout(connect, 2_000);
+    };
+  }
+
+  function disconnect() {
+    stopped = true;
+    es?.close();
+    es = null;
+  }
+
+  return { connect, disconnect };
+}

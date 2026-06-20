@@ -639,9 +639,10 @@ When `DB` and `CONTEXT` are empty strings (local development or demo), the app s
 Each household gets its own isolated SQLite (Cloudflare D1) database. Migrations live in
 `migrations/001_init.sql` (add `002_*.sql`, etc. for later versions) and are applied in
 ascending order, skipping versions already applied. Migrations must be additive only
-(`CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS` — `ALTER TABLE ADD COLUMN` is
-supported by SQLite but has no `IF NOT EXISTS`, so guard it in the migration runner's
-expected style or avoid it for v1 tables).
+(`CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, `ALTER TABLE ADD COLUMN` —
+bare `ADD COLUMN` without `IF NOT EXISTS` is correct; the migration runner's version
+tracking ensures each migration runs exactly once, so SQL-level idempotency guards are
+not needed and SQLite does not support `ADD COLUMN IF NOT EXISTS` anyway).
 
 **Table naming**: every table name — in migrations *and* in app SQL — must be prefixed
 with `app_{appId}__` (e.g. app id `streaks` -> `app_streaks__streaks`,

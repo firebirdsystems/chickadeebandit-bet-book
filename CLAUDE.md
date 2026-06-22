@@ -356,6 +356,24 @@ await fetch(EVENTS_URL, {
 }).catch(() => {});
 ```
 
+If your manifest declares `publishes` and/or `alert_on`, you **must** call the events endpoint in app code after the relevant action — declaring these fields alone does nothing. Always call it as a fire-and-forget side effect after the UI has already updated.
+
+### `publish_acls` — gating who may emit an event
+
+Any household member can POST to your app's events endpoint. If an event carries value another app acts on (e.g. `reward.earned` → piggy-bank credits allowance), gate it so only adults can emit it:
+
+```json
+{
+  "publishes": ["reward.earned", "item.closed"],
+  "publish_acls": {
+    "reward.earned": { "require_role": "adult" },
+    "item.closed":   { "require_role": "adult" }
+  }
+}
+```
+
+The hub enforces `require_role` server-side when the events endpoint is called — a child POSTing the event directly gets a 403. Declare `publish_acls` for any event whose payload another app treats as authoritative.
+
 ## File uploads
 
 Use `createFilesHelper` from `/hub-sdk.js` for all file operations. It handles correct URL construction, upload error detection, and deletion — do not roll your own `fetch` calls against `FILES`.
@@ -713,6 +731,30 @@ same restrictions.
 
 ### Policy kinds
 
+#### `adult_writable` — everyone reads, only adults write
+
+```json
+{ "kind": "adult_writable" }
+```
+
+All members may SELECT. INSERT/UPDATE/DELETE require `memberRole === "adult"` — non-adults get 403. This is the right choice for shared content that adults manage (chore definitions, survey questions, poll configuration, announcements) when you don't need per-row ownership.
+
+Add `"member_read_column": "member_id"` to restrict non-adult reads to only their own rows while adults still see all:
+
+```json
+{ "kind": "adult_writable", "member_read_column": "member_id" }
+```
+
+Example: `chores` definitions (kids read, only adults create/edit); `piggy_banks` and `transactions` with `member_read_column` (kid reads only their own bank, parents read all).
+
+#### `app_config` — a key/value settings table whose values only an admin may write
+
+```json
+{ "kind": "app_config" }
+```
+
+Read-all, **write-none via `/api/db`**. The only writer is `POST /run/{app}/api/admin-config`, which requires `isAdmin`. Use this for the settings row that names a privileged group (e.g. `board_group_id`) — if that row used `adult_only` instead, any adult could overwrite the group pointer and grant themselves board access. Pair with manifest `admin_config: { settings_table, keys: ["board_group_id"] }`. Used by `dues-contributions` and `reserve-fund`.
+
 #### `owner_only` — a row belongs to exactly one member
 
 ```json
@@ -844,13 +886,16 @@ their own violations; board members see/log on any violation); document-library
 
 | Your table looks like... | Use |
 |---|---|
+| Shared content adults manage, everyone reads (chores, polls, surveys) | `adult_writable` |
+| Same, but non-adults should only read their own rows | `adult_writable` with `member_read_column` |
+| Settings row that names a privileged group (board_group_id, committee_group_id) | `app_config` |
 | One row per member, only that member (and maybe adults) should see it | `owner_only` |
 | Like the above, but the row references another owned row (e.g. a transaction against a bank) | `owner_only_with_fk_check` |
 | A row can be private, shared with adults, or shared with everyone | `owner_or_visibility` |
 | Table-wide, adults-only data (account balances, fund totals) | `adult_only` |
 | Shared between exactly two partnered members | `couple_scoped` |
 | Votes/comments/logs/check-offs whose visibility should match a parent record | `inherit_visibility` |
-| Anonymous data with no per-row ownership at all (e.g. cast ballots, separate from a "have voted" receipt table) | no policy — but consider whether the schema itself leaks identity via a join (see officer-elections `oe_ballots`/`oe_ballot_receipts` for the pattern of splitting a "did X vote" receipt from anonymous ballot content) |
+| Anonymous data with no per-row ownership at all (e.g. cast ballots, separate from a "have voted" receipt table) | no policy — but pair with a receipt table under `owner_only` + `adults_bypass:false` + `member_can_update:false`; use `anonymous_responses` or `anonymous_ballot` manifest mechanisms to write both atomically |
 | Everyone can read, but only a specific group may INSERT (e.g. board-managed docs) | `owner_or_visibility` with `everyone_values`, `write_owner_only: true`, and `insert_privileged_only: true` |
 | Child rows where only a privileged group may create them (e.g. document versions) | `inherit_visibility` with `insert_privileged_only: true` |
 
@@ -877,6 +922,153 @@ This catches schema mistakes before install, but does **not** test the
 actual SQL rewriting — when in doubt, check
 `packages/hub/__tests__/unit/cloudflare-row-policy.test.ts` in the hub repo
 for worked examples per policy kind.
+
+## Anonymous submissions — `anonymous_responses`
+
+For surveys, polls, and any "one submission per session per member" flow where the submitter's identity must optionally be hidden, use the `anonymous_responses` manifest mechanism instead of writing directly to `/api/db`.
+
+**Why you can't do this with row_policies alone:** a client posting directly to `/api/db` can omit or forge its own `member_id`. The server needs to resolve identity and decide whether to store it.
+
+### How it works
+
+Declare `anonymous_responses` in `manifest.json`. The hub exposes `POST /run/{appId}/api/submit-response`, which:
+
+1. Resolves the caller's `member_id` from the session (cannot be spoofed)
+2. Checks the session table: rejects if status ≠ `session_open_value`
+3. Checks the receipt table for a duplicate → 409 `already_responded` if found
+4. Inserts the receipt row first (fail-safe: a partial failure always blocks retry)
+5. Inserts one response row per answer, with `member_id` set or omitted based on anonymity
+
+The hub injects `window.__SUBMIT_RESPONSE_URL` for apps that declare this field.
+
+### Config
+
+```json
+{
+  "anonymous_responses": {
+    "receipt_table":              "response_receipts",
+    "session_column":             "survey_id",
+    "member_column":              "member_id",
+    "created_at_column":          "created_at",
+    "response_table":             "responses",
+    "response_session_column":    "survey_id",
+    "response_question_column":   "question_id",
+    "response_member_column":     "member_id",
+    "response_answer_column":     "answer",
+    "response_id_column":         "id",
+    "response_created_at_column": "created_at",
+    "session_table":              "surveys",
+    "session_id_column":          "id",
+    "session_status_column":      "status",
+    "session_open_value":         "open",
+    "session_anonymous_column":   "anonymous"
+  }
+}
+```
+
+- Omit `response_member_column` → always anonymous (member_id never stored in response rows)
+- Omit `session_anonymous_column` → same (no per-session toggle)
+- Include both → hub reads the session's `anonymous` column at submission time; non-anonymous sessions store `member_id`, anonymous sessions strip it
+
+### Schema requirements
+
+```sql
+-- Receipt table: one row per (session, member) — immutable proof of submission
+CREATE TABLE IF NOT EXISTS app_myapp__response_receipts (
+  survey_id  TEXT NOT NULL,
+  member_id  TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (survey_id, member_id)
+);
+
+-- Response table: member_id nullable to support anonymous rows
+CREATE TABLE IF NOT EXISTS app_myapp__responses (
+  id          TEXT NOT NULL PRIMARY KEY,
+  survey_id   TEXT NOT NULL,
+  question_id TEXT NOT NULL,
+  member_id   TEXT,           -- NULL for anonymous submissions
+  answer      TEXT NOT NULL,
+  created_at  TEXT NOT NULL
+);
+
+-- Partial unique index: one response per member per question for non-anonymous;
+-- NULL member_id rows are unconstrained (SQLite treats each NULL as distinct)
+CREATE UNIQUE INDEX IF NOT EXISTS responses_member_unique
+  ON app_myapp__responses (survey_id, question_id, member_id)
+  WHERE member_id IS NOT NULL;
+```
+
+Receipt table row policy — immutable and invisible to everyone including adults:
+
+```json
+"response_receipts": {
+  "kind": "owner_only",
+  "member_column": "member_id",
+  "adults_bypass": false,
+  "member_can_update": false
+}
+```
+
+Response table: **no row policy** — the hub writes it directly via trusted server ops, never via `/api/db`.
+
+### Calling the endpoint
+
+```js
+const SUBMIT_RESPONSE = window.__SUBMIT_RESPONSE_URL ?? "";
+
+const res = await fetch(SUBMIT_RESPONSE, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    session_id: survey.id,
+    responses: questions.map(q => ({
+      question_id: q.id,   // only if response_question_column is declared
+      answer: answers[q.id],
+    })),
+  }),
+});
+if (res.status === 409) { /* already submitted */ }
+```
+
+### Critical: "has responded" queries must use the receipt table
+
+For anonymous submissions, `member_id` is NULL in the response table — `COUNT(DISTINCT member_id)` on it always returns 0. Use the receipt table for all response-count and "have I responded" checks, including list views, widgets, and AI export SQL files:
+
+```sql
+-- ✅ Correct — works for both anonymous and non-anonymous sessions
+EXISTS(
+  SELECT 1 FROM app_myapp__response_receipts rr
+  WHERE rr.survey_id = s.id AND rr.member_id = ?
+) AS i_responded
+
+-- ❌ Wrong — always 0 for anonymous sessions
+EXISTS(
+  SELECT 1 FROM app_myapp__responses r
+  WHERE r.survey_id = s.id AND r.member_id = ?
+) AS i_responded
+```
+
+## Security pitfalls
+
+### Client gates must mirror server policy
+
+A helper like `canManage(item, me)` that returns `true` for the item's `created_by` regardless of role will show action buttons to non-adult creators. When they click, the `adult_writable` policy blocks the write with a silent 403 — misleading UX. The client gate should match the server policy exactly:
+
+```js
+// ❌ Wrong — shows controls to a non-adult creator
+function canManage(item, me) {
+  return item.created_by === me.id || isAdult(me);
+}
+
+// ✅ Correct — mirrors adult_writable policy
+function canManage(item, me) {
+  return !!me && isAdult(me);
+}
+```
+
+### `publishes` / `alert_on` require an actual endpoint call
+
+Declaring these fields in `manifest.json` does not cause events to be emitted — your code must call the events endpoint after the action. A manifest with `publishes: ["survey.closed"]` but no `publishEvent` call after the status UPDATE means the integration is silently non-functional.
 
 ## Column encryption and `db_plaintext_columns`
 

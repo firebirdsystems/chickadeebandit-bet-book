@@ -1,7 +1,7 @@
 {
-  "name": "chickadee-app-template",
+  "name": "bet-book",
   "version": "1.0.0",
-  "description": "Template for building Chickadee Bandit marketplace apps",
+  "description": "A Chickadee Bandit app for long-term bets, predictions, wagers, receipts, and scorekeeping.",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",

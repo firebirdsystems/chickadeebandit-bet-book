@@ -286,8 +286,10 @@
     async function addAmendment(betId, body) {
       const text = body.trim();
       if (!text) throw new Error("Write the amendment.");
+      // Amendments are appended by anyone (endpoint_only append), but the `bets`
+      // row is write_owner_only — a non-creator can't bump bets.updated_at, so we
+      // don't (the amendment carries its own added_at).
       await appendRecord("amendments", { bet_id: betId, body: text });
-      await dbq("UPDATE app_bet_book__bets SET updated_at = ? WHERE id = ?", [now(), betId]);
       await reload();
     }
 
@@ -409,6 +411,11 @@
     function renderDetail(bet) {
       const partyList = betParticipants(bet.id);
       const winners = winnerIds(bet.id);
+      // The `bets` row policy is owner_or_visibility + write_owner_only, so only
+      // the creator may mark ready / settle / void / relabel the bet (everyone
+      // still reads it, and anyone may add receipts/amendments). Mirror that here
+      // so non-creators don't get a silent 403 on buttons they can't use.
+      const mine = bet.created_by === currentId();
       return `
         <h2>${esc(bet.title)}</h2>
         <div class="badges" style="justify-content:flex-start;margin:8px 0;">
@@ -426,8 +433,13 @@
         <div class="section-title">Amendments</div>
         <div class="stack">${renderAmendments(bet.id)}</div>
         <div class="modal-actions" style="justify-content:flex-start;">
-          ${bet.status === "open" ? `<button class="btn btn-ghost btn-small" data-ready="${esc(bet.id)}">Ready to judge</button>` : ""}
-          ${bet.status === "open" || bet.status === "ready" ? `<button class="btn btn-success btn-small" data-settle="${esc(bet.id)}">Settle</button><button class="btn btn-ghost btn-small" data-receipt="${esc(bet.id)}">Add receipt</button><button class="btn btn-ghost btn-small" data-amend="${esc(bet.id)}">Amend</button><button class="btn btn-danger btn-small" data-void="${esc(bet.id)}">Void</button>` : ""}
+          ${bet.status === "open" && mine ? `<button class="btn btn-ghost btn-small" data-ready="${esc(bet.id)}">Ready to judge</button>` : ""}
+          ${(bet.status === "open" || bet.status === "ready") ? `
+            ${mine ? `<button class="btn btn-success btn-small" data-settle="${esc(bet.id)}">Settle</button>` : ""}
+            <button class="btn btn-ghost btn-small" data-receipt="${esc(bet.id)}">Add receipt</button>
+            <button class="btn btn-ghost btn-small" data-amend="${esc(bet.id)}">Amend</button>
+            ${mine ? `<button class="btn btn-danger btn-small" data-void="${esc(bet.id)}">Void</button>` : ""}
+          ` : ""}
         </div>
       `;
     }

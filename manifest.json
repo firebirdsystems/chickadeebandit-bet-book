@@ -20,6 +20,14 @@
     "max_db_bytes": 52428800
   },
   "row_policies": {
+    "bets": {
+      "kind": "owner_or_visibility",
+      "member_column": "created_by",
+      "visibility_column": "status",
+      "everyone_values": ["open", "ready", "settled", "voided"],
+      "write_owner_only": true,
+      "frozen_when": { "status_column": "status", "locked_values": ["settled", "voided"] }
+    },
     "participants": { "kind": "endpoint_only", "read": "everyone" },
     "evidence": { "kind": "endpoint_only", "read": "everyone" },
     "amendments": { "kind": "endpoint_only", "read": "everyone" },

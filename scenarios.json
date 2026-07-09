@@ -1,0 +1,72 @@
+{
+  "scenarios": [
+    {
+      "name": "a settled bet is frozen: its owner can no longer edit the outcome or delete it",
+      "members": { "creator": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__bets (id, title, status, outcome_summary, created_by, created_at, updated_at) VALUES ('b1', 'Rain by Friday', 'open', 'undecided', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{creator}}"]
+        },
+        {
+          "action": "db",
+          "as": "creator",
+          "sql": "UPDATE app_bet_book__bets SET title = 'Rain by Saturday' WHERE id = 'b1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "creator",
+          "sql": "SELECT title FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "title": "Rain by Saturday" }] }
+        },
+        {
+          "action": "seedRaw",
+          "sql": "UPDATE app_bet_book__bets SET status = 'settled', resolved_at = '2026-01-05T00:00:00Z' WHERE id = 'b1'"
+        },
+        {
+          "action": "db",
+          "as": "creator",
+          "sql": "UPDATE app_bet_book__bets SET outcome_summary = 'I won, obviously' WHERE id = 'b1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "creator",
+          "sql": "SELECT outcome_summary FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "outcome_summary": "undecided" }] }
+        },
+        {
+          "action": "db",
+          "as": "creator",
+          "sql": "DELETE FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "creator",
+          "sql": "SELECT id FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1 }
+        }
+      ]
+    },
+    {
+      "name": "the endpoint_only participants table rejects direct app inserts",
+      "members": { "creator": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__bets (id, title, status, created_by, created_at, updated_at) VALUES ('b1', 'Who does dishes', 'open', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{creator}}"]
+        },
+        {
+          "action": "db",
+          "as": "creator",
+          "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, created_at) VALUES ('p1', 'b1', 'Me', 'yes', 'I will win', '2026-01-01T00:00:00Z')",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        }
+      ]
+    }
+  ]
+}

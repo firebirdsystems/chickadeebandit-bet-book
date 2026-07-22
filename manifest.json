@@ -1,5 +1,6 @@
 {
   "id": "bet-book",
+  "contexts": ["household", "shared_space"],
   "name": "Bet Book",
   "version": "1.0.0",
   "description": "A household ledger for long-term predictions, friendly wagers, receipts, reminders, and eventual bragging rights.",

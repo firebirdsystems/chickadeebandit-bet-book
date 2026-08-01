@@ -17,6 +17,7 @@
     "requires_approval": false
   },
   "storage": "db",
+  "db_plaintext_columns": ["terms_type", "dispute_rule", "kind", "vote"],
   "resource_limits": {
     "max_db_bytes": 52428800
   },

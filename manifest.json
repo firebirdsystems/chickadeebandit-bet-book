@@ -115,6 +115,44 @@
       }
     }
   },
+  "member_references": {
+    "bets": [
+      {
+        "column": "created_by",
+        "on_removed": "keep"
+      },
+      {
+        "column": "resolved_by",
+        "on_removed": "keep"
+      }
+    ],
+    "participants": [
+      {
+        "column": "member_id",
+        "on_removed": "keep"
+      },
+      {
+        "column": "created_by",
+        "on_removed": "keep"
+      }
+    ],
+    "evidence": {
+      "column": "added_by",
+      "on_removed": "keep"
+    },
+    "amendments": {
+      "column": "added_by",
+      "on_removed": "keep"
+    },
+    "settlement_votes": {
+      "column": "member_id",
+      "on_removed": "keep"
+    },
+    "settlement_winners": {
+      "column": "marked_by",
+      "on_removed": "keep"
+    }
+  },
   "nav": { "label": "Bet Book" },
   "widget": {
     "label": "Open Bets",

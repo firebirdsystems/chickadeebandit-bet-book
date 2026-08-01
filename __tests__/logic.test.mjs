@@ -8,7 +8,7 @@ import {
   formatTerms,
   safeReceiptUrl,
   sortBets,
-  validateBetDraft,
+  validateBetDraft, searchableFields,
 } from "../src/logic.js";
 
 describe("validateBetDraft", () => {
@@ -104,5 +104,12 @@ describe("display helpers", () => {
     expect(stats.settled).toBe(1);
     expect(stats.overdue).toBe(1);
     expect(stats.longestOpen.id).toBe("a");
+  });
+});
+
+describe("searchableFields", () => {
+  it("matches on the terms text — what was actually agreed", () => {
+    const fields = searchableFields({ title: "The great toast bet", terms_text: "loser does the washing up for a week", category: "chores", dispute_rule: "" });
+    expect(fields).toContain("loser does the washing up for a week");
   });
 });

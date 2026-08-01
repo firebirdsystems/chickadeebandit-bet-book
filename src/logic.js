@@ -128,3 +128,12 @@ export function appStats(bets) {
   const longestOpen = open.slice().sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")))[0] ?? null;
   return { open: open.length, settled: settled.length, overdue: overdue.length, longestOpen };
 }
+
+/**
+ * Fields the in-app search matches against (see hub-sdk `searchMatch`).
+ * The terms are the bet — the title is a nickname for it, and what
+ * was actually agreed (and how it gets settled) is in the text.
+ */
+export function searchableFields(item) {
+  return [item.title, item.terms_text, item.category, item.dispute_rule];
+}

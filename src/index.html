@@ -151,6 +151,13 @@
       .modal-backdrop { align-items: center; padding: 18px; }
       .modal { border-radius: 12px; }
     }
+    .search-row { margin-bottom: 12px; }
+    .search-input {
+      width: 100%; border: 1.5px solid var(--border-mid, var(--border, #d1d5db));
+      border-radius: 8px; padding: 9px 11px; font: inherit;
+      background: var(--surface, var(--card, #fff)); color: var(--text, inherit);
+    }
+    .search-input:focus { outline: none; border-color: var(--accent, #6366f1); }
   </style>
   <base href="/run/bet-book/">
 </head>
@@ -167,10 +174,10 @@
   </div>
 
   <script type="module">
-    import { createDbHelper, esc, formatRelativeDate, hubConfirm, initial, memberColor } from "/hub-sdk.js";
+    import { createDbHelper, esc, formatRelativeDate, hubConfirm, initial, memberColor, searchMatch } from "/hub-sdk.js";
     import {
       CATEGORIES, DISPUTE_RULES, TERM_TYPES, appStats, buildScoreboard, dueStatus,
-      formatTerms, labelFor, safeReceiptUrl, sortBets, validateBetDraft
+      formatTerms, labelFor, safeReceiptUrl, sortBets, validateBetDraft, searchableFields
     } from "./logic.js";
 
     const CONTEXT = window.__CONTEXT_URL ?? "";
@@ -181,6 +188,7 @@
 
     let members = [];
     let bets = [];
+let searchQ = "";       // in-app search (see logic.js searchableFields)
     let participants = [];
     let evidence = [];
     let amendments = [];
@@ -368,14 +376,32 @@
             ${CATEGORIES.map(c => filterChip(c.value, c.label)).join("")}
           </div>
         </div>
+        ${bets.length ? `<div class="search-row"><input id="search" class="search-input" type="search" placeholder="Search bets…" aria-label="Search bets" value="${esc(searchQ)}" /></div>` : ""}
         <main class="grid">
-          <section class="list">
-            ${visibleBets().length ? visibleBets().map(renderBetCard).join("") : `<div class="empty">No bets here yet.</div>`}
+          <section class="list" id="bet-list">
+            ${renderBetList()}
           </section>
           <aside class="detail card">${selected ? renderDetail(selected) : "Select a bet to see the fine print."}</aside>
         </main>
       `;
     }
+
+    // Owns the filtering and the empty states, so the keystroke handler can
+    // refresh the list without repeating how it is derived.
+    function renderBetList() {
+      const scoped = visibleBets();
+      const shown = searchQ ? scoped.filter(b => searchMatch(searchQ, searchableFields(b))) : scoped;
+      if (shown.length) return shown.map(renderBetCard).join("");
+      if (searchQ) return `<div class="empty">No bets match "${esc(searchQ)}".</div>`;
+      return `<div class="empty">No bets here yet.</div>`;
+    }
+
+    document.addEventListener("input", (e) => {
+      if (e.target.id !== "search") return;
+      searchQ = e.target.value;
+      const el = document.getElementById("bet-list");
+      if (el) el.innerHTML = renderBetList();
+    });
 
     function filterChip(id, label) {
       return `<button class="chip ${filter === id ? "active" : ""}" data-filter="${id}">${esc(label)}</button>`;

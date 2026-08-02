@@ -184,6 +184,21 @@
     const DB = window.__DB_URL ?? "";
     const APPEND_RECORD = window.__APPEND_RECORD_URL ?? "/run/bet-book/api/append-record";
     const CURRENT = window.__CURRENT_MEMBER ?? null;
+    const EVENTS = window.__EVENTS_URL ?? "";
+
+    // Best-effort: the row is already written, so a failed publish is not fatal.
+    async function publishEvent(type, subjectId, payload = {}) {
+      if (!EVENTS) return;
+      try {
+        await fetch(EVENTS, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, subject_id: subjectId, payload }),
+        });
+      } catch {
+        // ignored on purpose
+      }
+    }
     const dbq = createDbHelper(DB);
 
     let members = [];
@@ -317,6 +332,14 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
         await appendRecord("settlement_winners", { bet_id: betId, participant_id: participantId });
       }
       await appendRecord("settlement_votes", { bet_id: betId, vote: "settled", notes: summary.trim() });
+      // Settlement is the only transition worth the bus: every status a bet can
+      // hold is in everyone_values, so an outcome is already household-readable.
+      await publishEvent("bet.settled", betId, {
+        outcome_summary: summary.trim(),
+        winner_count: winners.length,
+        resolved_by: currentId(),
+        resolved_at: at,
+      });
       await reload();
     }
 

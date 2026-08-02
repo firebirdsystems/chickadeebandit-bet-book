@@ -21,6 +21,32 @@
   "resource_limits": {
     "max_db_bytes": 52428800
   },
+  "agenda": {
+    "kind": "reminder",
+    "label": "Bet review",
+    "source": {
+      "kind": "sql",
+      "query": "SELECT id AS id, title AS title, review_date AS when_at FROM app_bet_book__bets WHERE review_date = :today AND status IN ('open', 'ready') ORDER BY created_at LIMIT 10"
+    }
+  },
+  "glance": {
+    "source": {
+      "kind": "sql",
+      "query": "SELECT COUNT(*) AS n FROM app_bet_book__bets WHERE status = 'ready' LIMIT 1"
+    },
+    "display": {
+      "template": "badge",
+      "count": "n",
+      "label": "bets ready to settle",
+      "severity": "info"
+    }
+  },
+  "publishes": [
+    "bet.settled"
+  ],
+  "publish_acls": {
+    "bet.settled": { "require_role": "member" }
+  },
   "row_policies": {
     "bets": {
       "kind": "owner_or_visibility",

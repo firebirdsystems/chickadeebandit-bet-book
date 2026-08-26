@@ -17,6 +17,9 @@
     "requires_approval": false
   },
   "storage": "db",
+  "preload": {
+    "bets": {"sql": "SELECT * FROM app_bet_book__bets ORDER BY created_at DESC"}
+  },
   "db_plaintext_columns": ["terms_type", "dispute_rule", "kind", "vote"],
   "resource_limits": {
     "max_db_bytes": 52428800

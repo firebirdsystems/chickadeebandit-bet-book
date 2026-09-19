@@ -15,14 +15,14 @@
       --accent: var(--hub-primary, #111827);
       --accent-fg: var(--hub-primary-fg, #ffffff);
       --accent-hover: var(--hub-primary-hover, #374151);
-      --green: #047857;
-      --green-bg: #d1fae5;
-      --amber: #b45309;
-      --amber-bg: #fef3c7;
-      --red: #b91c1c;
-      --red-bg: #fee2e2;
-      --blue: #1d4ed8;
-      --blue-bg: #dbeafe;
+      --green: var(--hub-tint-success-fg, #047857);
+      --green-bg: var(--hub-tint-success, #d1fae5);
+      --amber: var(--hub-tint-warning-fg, #b45309);
+      --amber-bg: var(--hub-tint-warning, #fef3c7);
+      --red: var(--hub-tint-danger-fg, #b91c1c);
+      --red-bg: var(--hub-tint-danger, #fee2e2);
+      --blue: var(--hub-tint-info-fg, #1d4ed8);
+      --blue-bg: var(--hub-tint-info, #dbeafe);
       --radius: var(--hub-radius, 8px);
       --shadow: 0 1px 3px rgba(15, 23, 42, .08);
     }
@@ -96,7 +96,7 @@
     .meta { color: var(--muted); font-size: .8rem; margin-top: 4px; }
     .badges { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
     .badge { border-radius: 999px; padding: 3px 8px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
-    .badge-neutral { background: #f1f5f9; color: #334155; }
+    .badge-neutral { background: var(--bg); color: var(--text); }
     .badge-blue { background: var(--blue-bg); color: var(--blue); }
     .badge-amber { background: var(--amber-bg); color: var(--amber); }
     .badge-red { background: var(--red-bg); color: var(--red); }
@@ -131,7 +131,7 @@
     .field { margin-bottom: 11px; }
     label { display: block; font-size: .72rem; color: var(--muted); font-weight: 900; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
     input, select, textarea {
-      width: 100%; border: 1.5px solid var(--border); border-radius: 8px; background: white; color: var(--text);
+      width: 100%; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text);
       padding: 9px 10px; outline: none;
     }
     textarea { min-height: 76px; resize: vertical; }

@@ -1,5 +1,7 @@
 # Bet Book
 
+A [Chickadee Bandit](https://chickadeebandit.com/app-library/bet-book) app.
+
 A Chickadee Bandit app for long-term household bets, predictions, friendly wagers, receipts, and scorekeeping.
 
 ## Features

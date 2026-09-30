@@ -335,13 +335,25 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
     async function settleBet(betId, winners, summary) {
       if (!summary.trim()) throw new Error("Add a settlement note.");
       const at = now();
+      // Winners are appended BEFORE the bet flips to settled: the manifest
+      // closes settlement_winners once a bet is settled, so nobody can add a
+      // winner to a finished bet. A retry after a partial failure skips the
+      // rows an earlier attempt already wrote (the pair is UNIQUE) — read
+      // fresh from the database, since the in-memory list is only refreshed
+      // by reload() and a failed attempt never reaches it.
+      const { rows: written } = await dbq(
+        "SELECT participant_id FROM app_bet_book__settlement_winners WHERE bet_id = ?",
+        [betId],
+      );
+      const already = new Set((written ?? []).map((r) => r.participant_id));
+      for (const participantId of winners) {
+        if (already.has(participantId)) continue;
+        await appendRecord("settlement_winners", { bet_id: betId, participant_id: participantId });
+      }
       await dbq(
         "UPDATE app_bet_book__bets SET status = 'settled', resolved_at = ?, resolved_by = ?, outcome_summary = ?, updated_at = ? WHERE id = ?",
         [at, currentId(), summary.trim(), at, betId]
       );
-      for (const participantId of winners) {
-        await appendRecord("settlement_winners", { bet_id: betId, participant_id: participantId });
-      }
       await appendRecord("settlement_votes", { bet_id: betId, vote: "settled", notes: summary.trim() });
       // Settlement is the only transition worth the bus: every status a bet can
       // hold is in everyone_values, so an outcome is already household-readable.

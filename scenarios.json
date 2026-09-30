@@ -67,6 +67,212 @@
           "expect": { "status": 403, "errorIncludes": "endpoint" }
         }
       ]
+    },
+    {
+      "name": "a child can see an adult's open bet but cannot edit or delete it",
+      "members": { "kid": "child", "parent": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__bets (id, title, status, created_by, created_at, updated_at) VALUES ('b1', 'Rain by Friday', 'open', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{parent}}"]
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT id FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "UPDATE app_bet_book__bets SET title = 'Kid wins' WHERE id = 'b1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "SELECT title FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "title": "Rain by Friday" }] }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "DELETE FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "SELECT id FROM app_bet_book__bets WHERE id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1 }
+        }
+      ]
+    },
+    {
+      "name": "a child's bet is stamped as their own, and a child cannot cast settlement votes through app SQL",
+      "members": { "kid": "child", "parent": "adult" },
+      "steps": [
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_bet_book__bets (id, title, status, created_by, created_at, updated_at) VALUES ('b-kid', 'Dog eats homework', 'open', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{kid}}"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "SELECT created_by FROM app_bet_book__bets WHERE id = 'b-kid'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "created_by": "scn-kid" }] }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_bet_book__settlement_votes (id, bet_id, member_id, vote, created_at) VALUES ('sv1', 'b-kid', ?, 'settled', '2026-01-02T00:00:00Z')",
+          "params": ["{{kid}}"],
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        }
+      ]
+    },
+    {
+      "name": "once a bet is settled the losing side cannot rewrite, add to or erase the recorded winner, even as the bet's creator",
+      "members": { "winner": "adult", "loser": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__bets (id, title, terms_type, status, resolved_at, created_by, created_at, updated_at) VALUES ('b1', 'Snow before December', 'money', 'settled', '2026-01-05T00:00:00Z', ?, '2026-01-01T00:00:00Z', '2026-01-05T00:00:00Z')",
+          "params": ["{{loser}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES ('p-win', 'b1', ?, 'Winner', 'yes', 'It will snow', 1, ?, '2026-01-01T00:00:00Z')",
+          "params": ["{{winner}}", "{{loser}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES ('p-lose', 'b1', ?, 'Loser', 'no', 'No snow', 0, ?, '2026-01-01T00:00:00Z')",
+          "params": ["{{loser}}", "{{loser}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__settlement_winners (id, bet_id, participant_id, marked_by, created_at) VALUES ('w1', 'b1', 'p-win', ?, '2026-01-05T00:00:00Z')",
+          "params": ["{{winner}}"]
+        },
+        {
+          "action": "db",
+          "as": "loser",
+          "sql": "UPDATE app_bet_book__settlement_winners SET participant_id = 'p-lose' WHERE id = 'w1'",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "loser",
+          "sql": "DELETE FROM app_bet_book__settlement_winners WHERE id = 'w1'",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "loser",
+          "sql": "INSERT INTO app_bet_book__settlement_winners (id, bet_id, participant_id, marked_by, created_at) VALUES ('w2', 'b1', 'p-lose', ?, '2026-01-06T00:00:00Z')",
+          "params": ["{{loser}}"],
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "loser",
+          "sql": "UPDATE app_bet_book__participants SET is_winner = 1 WHERE id = 'p-lose'",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "winner",
+          "sql": "SELECT participant_id FROM app_bet_book__settlement_winners WHERE bet_id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "participant_id": "p-win" }] }
+        },
+        {
+          "action": "db",
+          "as": "winner",
+          "sql": "SELECT id FROM app_bet_book__participants WHERE bet_id = 'b1' AND is_winner = 1",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "p-win" }] }
+        }
+      ]
+    },
+    {
+      "name": "a bet's evidence and amendments are a shared record: everyone including a child reads them, and nobody, not even the author, can edit or delete them through app SQL",
+      "members": { "author": "adult", "rival": "adult", "kid": "child" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__bets (id, title, status, created_by, created_at, updated_at) VALUES ('b1', 'Team wins the cup', 'open', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{author}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, url, notes, added_by, added_at) VALUES ('e1', 'b1', 'link', 'Final score', 'https://example.com/score', 'they lost 2-1', ?, '2026-01-03T00:00:00Z')",
+          "params": ["{{rival}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_bet_book__amendments (id, bet_id, body, added_by, added_at) VALUES ('a1', 'b1', 'Extra time counts', ?, '2026-01-02T00:00:00Z')",
+          "params": ["{{rival}}"]
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT id, label FROM app_bet_book__evidence WHERE bet_id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "e1", "label": "Final score" }] }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT id, body FROM app_bet_book__amendments WHERE bet_id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "a1", "body": "Extra time counts" }] }
+        },
+        {
+          "action": "db",
+          "as": "author",
+          "sql": "UPDATE app_bet_book__evidence SET notes = 'they won 3-1' WHERE id = 'e1'",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "author",
+          "sql": "DELETE FROM app_bet_book__amendments WHERE id = 'a1'",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "rival",
+          "sql": "DELETE FROM app_bet_book__evidence WHERE id = 'e1'",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "rival",
+          "sql": "UPDATE app_bet_book__amendments SET body = 'Extra time does not count' WHERE id = 'a1'",
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_bet_book__amendments (id, bet_id, body, added_by, added_at) VALUES ('a2', 'b1', 'Penalties do not count', ?, '2026-01-04T00:00:00Z')",
+          "params": ["{{kid}}"],
+          "expect": { "status": 403, "errorIncludes": "endpoint" }
+        },
+        {
+          "action": "db",
+          "as": "author",
+          "sql": "SELECT notes FROM app_bet_book__evidence WHERE id = 'e1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "notes": "they lost 2-1" }] }
+        },
+        {
+          "action": "db",
+          "as": "author",
+          "sql": "SELECT body FROM app_bet_book__amendments WHERE bet_id = 'b1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "body": "Extra time counts" }] }
+        }
+      ]
     }
   ]
 }

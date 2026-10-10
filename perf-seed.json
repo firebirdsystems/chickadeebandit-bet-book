@@ -1,0 +1,474 @@
+{
+ "seed": [
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, terms_text, review_date, dispute_rule, status, locked_at, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, date('now','+0 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days'))",
+   "params": [
+    "bet-snow",
+    "First snow before Thanksgiving",
+    "weather",
+    "favor_chore",
+    "Loser shovels the driveway all December",
+    "all_parties",
+    "open",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days','+1 seconds'))",
+   "params": [
+    "p-1",
+    "bet-snow",
+    "{{me}}",
+    "Adam",
+    "Yes",
+    "Measurable snow on the deck rail before Thanksgiving",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days','+2 seconds'))",
+   "params": [
+    "p-2",
+    "bet-snow",
+    "Grandpa Joe",
+    "No",
+    "Not a flake until December",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, url, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-6 days'))",
+   "params": [
+    "e-1",
+    "bet-snow",
+    "link",
+    "Long-range forecast",
+    "https://www.weather.gov/",
+    "Calls for a colder than average November",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-17 days'))",
+   "params": [
+    "e-2",
+    "bet-snow",
+    "note",
+    "What counts as snow",
+    "Has to stick to the deck rail, flurries do not count",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__amendments (id, bet_id, body, added_by, added_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-10 days'))",
+   "params": [
+    "a-1",
+    "bet-snow",
+    "Sleet does not count either",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, terms_text, review_date, dispute_rule, status, locked_at, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, date('now','+9 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days'))",
+   "params": [
+    "bet-deck",
+    "Deck gets stained before the first frost",
+    "house_projects",
+    "meal_treat",
+    "Loser buys pizza night",
+    "creator_decides",
+    "open",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days','+1 seconds'))",
+   "params": [
+    "p-3",
+    "bet-deck",
+    "{{me}}",
+    "Adam",
+    "Done in time",
+    "Both coats on before the first frost",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days','+2 seconds'))",
+   "params": [
+    "p-4",
+    "bet-deck",
+    "Maya",
+    "Not a chance",
+    "It will still be bare wood in spring",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, url, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'))",
+   "params": [
+    "e-3",
+    "bet-deck",
+    "photo",
+    "Sanding finished",
+    "https://example.com/photos/deck-sanded.jpg",
+    "Rails still to do",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__amendments (id, bet_id, body, added_by, added_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-20 days'))",
+   "params": [
+    "a-2",
+    "bet-deck",
+    "Rails count, the stairs do not",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, terms_text, review_date, dispute_rule, status, locked_at, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, date('now','-2 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-40 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-40 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days'))",
+   "params": [
+    "bet-playoffs",
+    "Home team makes the playoffs",
+    "sports",
+    "money",
+    "Twenty dollars",
+    "majority_vote",
+    "ready",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-40 days','+1 seconds'))",
+   "params": [
+    "p-5",
+    "bet-playoffs",
+    "{{me}}",
+    "Adam",
+    "In",
+    "They clinch a wild card spot",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-40 days','+2 seconds'))",
+   "params": [
+    "p-6",
+    "bet-playoffs",
+    "Uncle Rob",
+    "Out",
+    "They fade in the last two weeks",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-40 days','+3 seconds'))",
+   "params": [
+    "p-7",
+    "bet-playoffs",
+    "Sam",
+    "Out",
+    "Eliminated by one game",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, url, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days'))",
+   "params": [
+    "e-4",
+    "bet-playoffs",
+    "link",
+    "Final standings",
+    "https://example.com/standings",
+    "Clinched on the last day",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, url, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-39 days'))",
+   "params": [
+    "e-5",
+    "bet-playoffs",
+    "screenshot",
+    "Group chat receipt",
+    "https://example.com/photos/chat.png",
+    "Rob agreeing to the terms",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, terms_text, review_date, dispute_rule, status, locked_at, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, date('now','+30 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'))",
+   "params": [
+    "bet-marathon",
+    "Sam finishes the half marathon under two hours",
+    "family",
+    "custom_prize",
+    "Winner picks the next family movie",
+    "all_parties",
+    "open",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days','+1 seconds'))",
+   "params": [
+    "p-8",
+    "bet-marathon",
+    "Sam",
+    "Under",
+    "1:58 or better",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days','+2 seconds'))",
+   "params": [
+    "p-9",
+    "bet-marathon",
+    "{{me}}",
+    "Adam",
+    "Over",
+    "2:05, with a smile",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-3 days'))",
+   "params": [
+    "e-6",
+    "bet-marathon",
+    "note",
+    "Last long run",
+    "Ten miles at 9:20 pace",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, review_date, dispute_rule, status, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, date('now','+120 days'), ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days'))",
+   "params": [
+    "bet-award",
+    "Best picture goes to the movie nobody saw",
+    "pop_culture",
+    "bragging_rights",
+    "admin_resolves",
+    "open",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days','+1 seconds'))",
+   "params": [
+    "p-10",
+    "bet-award",
+    "Maya",
+    "Yes",
+    "The quiet one wins",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days','+2 seconds'))",
+   "params": [
+    "p-11",
+    "bet-award",
+    "{{me}}",
+    "Adam",
+    "No",
+    "The blockbuster takes it",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, terms_text, review_date, dispute_rule, status, locked_at, resolved_at, resolved_by, outcome_summary, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, date('now','-95 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-150 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-96 days'), ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-150 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-96 days'))",
+   "params": [
+    "bet-tomato",
+    "Tomatoes ripen before the Fourth of July",
+    "house_projects",
+    "favor_chore",
+    "Loser weeds the garden for a month",
+    "all_parties",
+    "settled",
+    "{{me}}",
+    "First ripe Sungold picked on July 2. Adam weeds.",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-150 days','+1 seconds'))",
+   "params": [
+    "p-12",
+    "bet-tomato",
+    "Maya",
+    "Before",
+    "At least one ripe tomato by July 4",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, result_note, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-150 days','+2 seconds'))",
+   "params": [
+    "p-13",
+    "bet-tomato",
+    "{{me}}",
+    "Adam",
+    "After",
+    "Nothing ripe until mid-July",
+    "Off by two weeks",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, url, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-96 days'))",
+   "params": [
+    "e-7",
+    "bet-tomato",
+    "photo",
+    "The winning tomato",
+    "https://example.com/photos/sungold.jpg",
+    "Picked July 2",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__settlement_votes (id, bet_id, member_id, vote, notes, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-96 days'))",
+   "params": [
+    "v-1",
+    "bet-tomato",
+    "{{me}}",
+    "settled",
+    "First ripe Sungold picked on July 2. Adam weeds."
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__settlement_winners (id, bet_id, participant_id, marked_by, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-96 days'))",
+   "params": [
+    "w-1",
+    "bet-tomato",
+    "p-12",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, terms_text, review_date, dispute_rule, status, locked_at, resolved_at, resolved_by, outcome_summary, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, date('now','-20 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-200 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-19 days'), ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-200 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-19 days'))",
+   "params": [
+    "bet-rates",
+    "Mortgage rates drop below six percent by fall",
+    "finance",
+    "meal_treat",
+    "Loser cooks dinner",
+    "creator_decides",
+    "settled",
+    "{{me}}",
+    "Still above six on the review date. Adam wins dinner.",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-200 days','+1 seconds'))",
+   "params": [
+    "p-14",
+    "bet-rates",
+    "{{me}}",
+    "Adam",
+    "Stays above",
+    "No dip below six this year",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-200 days','+2 seconds'))",
+   "params": [
+    "p-15",
+    "bet-rates",
+    "Aunt Carol",
+    "Drops",
+    "Under six by September",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__evidence (id, bet_id, kind, label, url, notes, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-19 days'))",
+   "params": [
+    "e-8",
+    "bet-rates",
+    "link",
+    "Weekly rate survey",
+    "https://example.com/rates",
+    "Thirty-year average on the review date",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__amendments (id, bet_id, body, added_by, added_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-190 days'))",
+   "params": [
+    "a-3",
+    "bet-rates",
+    "Use the thirty-year fixed national average",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__settlement_votes (id, bet_id, member_id, vote, notes, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-19 days'))",
+   "params": [
+    "v-2",
+    "bet-rates",
+    "{{me}}",
+    "settled",
+    "Still above six on the review date. Adam wins dinner."
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__settlement_winners (id, bet_id, participant_id, marked_by, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-19 days'))",
+   "params": [
+    "w-2",
+    "bet-rates",
+    "p-14",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__bets (id, title, category, terms_type, review_date, dispute_rule, status, locked_at, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, date('now','-60 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-75 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-75 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-60 days'))",
+   "params": [
+    "bet-rain",
+    "Rain on the school picnic",
+    "weather",
+    "bragging_rights",
+    "all_parties",
+    "voided",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-75 days','+1 seconds'))",
+   "params": [
+    "p-16",
+    "bet-rain",
+    "Sam",
+    "Rain",
+    "It pours by noon",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__participants (id, bet_id, member_id, member_name, side_label, prediction, is_winner, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-75 days','+2 seconds'))",
+   "params": [
+    "p-17",
+    "bet-rain",
+    "{{me}}",
+    "Adam",
+    "Dry",
+    "Sunny all afternoon",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_bet_book__amendments (id, bet_id, body, added_by, added_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-61 days'))",
+   "params": [
+    "a-4",
+    "bet-rain",
+    "Picnic moved indoors a week ahead, calling this one off",
+    "{{me}}"
+   ]
+  }
+ ]
+}

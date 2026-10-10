@@ -18,7 +18,22 @@
   },
   "storage": "db",
   "preload": {
-    "bets": {"sql": "SELECT * FROM app_bet_book__bets ORDER BY created_at DESC"}
+    "bets": {"sql": "SELECT * FROM app_bet_book__bets ORDER BY created_at DESC"},
+    "participants": {
+      "sql": "SELECT * FROM app_bet_book__participants ORDER BY created_at ASC"
+    },
+    "evidence": {
+      "sql": "SELECT * FROM app_bet_book__evidence ORDER BY added_at DESC"
+    },
+    "amendments": {
+      "sql": "SELECT * FROM app_bet_book__amendments ORDER BY added_at DESC"
+    },
+    "settlement_votes": {
+      "sql": "SELECT * FROM app_bet_book__settlement_votes ORDER BY created_at DESC"
+    },
+    "settlement_winners": {
+      "sql": "SELECT * FROM app_bet_book__settlement_winners ORDER BY created_at ASC"
+    }
   },
   "db_plaintext_columns": ["terms_type", "dispute_rule", "kind", "vote"],
   "resource_limits": {

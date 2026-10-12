@@ -287,9 +287,18 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
       return json;
     }
 
+    // An error whose message this app wrote for the reader. Only these are
+    // shown as they are; any other failed write shows one fixed line and the
+    // real error goes to the console.
+    function userError(message) { return Object.assign(new Error(message), { forUser: true }); }
+    function failText(err, line) {
+      if (!err?.forUser) console.error("[bet-book] write failed:", err);
+      return err?.forUser ? err.message : line;
+    }
+
     async function saveBet(draft) {
       const validation = validateBetDraft(draft);
-      if (!validation.valid) throw new Error(validation.error);
+      if (!validation.valid) throw userError(validation.error);
       const id = crypto.randomUUID();
       const at = now();
       await dbq(
@@ -316,14 +325,14 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
 
     async function addEvidence(betId, data) {
       const label = data.label.trim();
-      if (!label) throw new Error("Name the receipt.");
+      if (!label) throw userError("Name the receipt.");
       await appendRecord("evidence", { bet_id: betId, kind: data.kind, label, url: data.url || null, notes: data.notes || null });
       await reload();
     }
 
     async function addAmendment(betId, body) {
       const text = body.trim();
-      if (!text) throw new Error("Write the amendment.");
+      if (!text) throw userError("Write the amendment.");
       // Amendments are appended by anyone (endpoint_only append), but the `bets`
       // row is write_owner_only — a non-creator can't bump bets.updated_at, so we
       // don't (the amendment carries its own added_at).
@@ -350,11 +359,11 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
         const res = await dbq("UPDATE app_bet_book__bets SET status = 'ready', updated_at = ? WHERE id = ?", [now(), betId]);
         await reload();
         if (res.changed === 0) showPageError(UNCHANGED);
-      } catch (err) { showPageError(err.message); }
+      } catch (err) { showPageError(failText(err, "Couldn’t mark the bet ready — try again.")); }
     }
 
     async function settleBet(betId, winners, summary) {
-      if (!summary.trim()) throw new Error("Add a settlement note.");
+      if (!summary.trim()) throw userError("Add a settlement note.");
       const at = now();
       // Winners are appended BEFORE the bet flips to settled: the manifest
       // closes settlement_winners once a bet is settled, so nobody can add a
@@ -378,7 +387,7 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
       // Nothing settled means nothing to record or announce.
       if (res.changed === 0) {
         await reload();
-        throw new Error(UNCHANGED);
+        throw userError(UNCHANGED);
       }
       await appendRecord("settlement_votes", { bet_id: betId, vote: "settled", notes: summary.trim() });
       // Settlement is the only transition worth the bus: every status a bet can
@@ -399,7 +408,7 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
         const res = await dbq("UPDATE app_bet_book__bets SET status = 'voided', updated_at = ? WHERE id = ?", [now(), betId]);
         await reload();
         if (res.changed === 0) showPageError(UNCHANGED);
-      } catch (err) { showPageError(err.message); }
+      } catch (err) { showPageError(failText(err, "Couldn’t void the bet — try again.")); }
     }
 
     async function reload() {
@@ -694,7 +703,7 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
         } catch (err) {
           const box = wrap.querySelector(".error");
           box.hidden = false;
-          box.textContent = err.message;
+          box.textContent = failText(err, "Couldn’t create the bet — try again.");
         }
       });
     }
@@ -750,7 +759,7 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
             notes: wrap.querySelector("#receipt-notes").value.trim(),
           });
           wrap.remove();
-        } catch (err) { showModalError(wrap, err.message); }
+        } catch (err) { showModalError(wrap, failText(err, "Couldn’t add the receipt — try again.")); }
       });
     }
 
@@ -762,7 +771,7 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
       `);
       wrap.querySelector("#save-amend").addEventListener("click", async () => {
         try { await addAmendment(betId, wrap.querySelector("#amend-body").value); wrap.remove(); }
-        catch (err) { showModalError(wrap, err.message); }
+        catch (err) { showModalError(wrap, failText(err, "Couldn’t add the amendment — try again.")); }
       });
     }
 
@@ -782,10 +791,10 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
       wrap.querySelector("#save-settle").addEventListener("click", async () => {
         try {
           const winners = [...wrap.querySelectorAll("[data-winner]:checked")].map(input => input.value);
-          if (!winners.length) throw new Error("Pick at least one correct party.");
+          if (!winners.length) throw userError("Pick at least one correct party.");
           await settleBet(betId, winners, wrap.querySelector("#settle-summary").value);
           wrap.remove();
-        } catch (err) { showModalError(wrap, err.message); }
+        } catch (err) { showModalError(wrap, failText(err, "Couldn’t settle the bet — try again.")); }
       });
     }
 

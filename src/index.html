@@ -158,6 +158,8 @@
       background: var(--surface, var(--card, #fff)); color: var(--text, inherit);
     }
     .search-input:focus { outline: none; border-color: var(--accent, #6366f1); }
+    .load-error { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--hub-tint-danger, #fee2e2); color: var(--hub-tint-danger-fg, #b91c1c); font-size: 0.9rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+    .load-error-retry { background: none; border: 1px solid currentColor; border-radius: 8px; padding: 5px 10px; font: inherit; font-weight: 600; color: inherit; cursor: pointer; flex-shrink: 0; }
   </style>
   <base href="/run/bet-book/">
 </head>
@@ -224,8 +226,12 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
     let tab = "open";
     let filter = "all";
 
+    // Set when the first load fails, cleared when a load succeeds.
+    let loadFailed = false;
+
     const root = document.getElementById("root");
-    document.getElementById("new-bet-btn").addEventListener("click", () => openBetModal());
+    const newBetBtn = document.getElementById("new-bet-btn");
+    newBetBtn.addEventListener("click", () => openBetModal());
 
     async function loadMembers() {
       if (!CONTEXT) {
@@ -236,12 +242,10 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
         ];
         return;
       }
-      try {
-        const res = await fetch(`${CONTEXT}?keys=family.members`);
-        members = ((await res.json())["family.members"]) ?? [];
-      } catch {
-        members = [];
-      }
+      const res = await fetch(`${CONTEXT}?keys=family.members`);
+      const ctx = await res.json().catch(() => null);
+      if (!res.ok || !ctx || typeof ctx !== "object" || ctx.$errors?.length) throw new Error("Couldn’t reach the hub. Try again.");
+      members = ctx["family.members"] ?? [];
     }
 
     async function loadData() {
@@ -278,8 +282,8 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || json.error) throw new Error(json.error || "Append failed");
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json || typeof json !== "object" || json.error) throw new Error(json?.error || "Append failed");
       return json;
     }
 
@@ -327,9 +331,26 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
       await reload();
     }
 
+    // The hub answers 200 with `changed: 0` when a bet is already settled or
+    // voided (frozen) or is not the caller's to change.
+    const UNCHANGED = "This bet can no longer be changed.";
+
+    // A page-level message for actions that have no dialog to report into. The
+    // next render replaces it.
+    function showPageError(message) {
+      const box = document.createElement("div");
+      box.className = "error";
+      box.setAttribute("role", "alert");
+      box.textContent = message;
+      root.prepend(box);
+    }
+
     async function markReady(betId) {
-      await dbq("UPDATE app_bet_book__bets SET status = 'ready', updated_at = ? WHERE id = ?", [now(), betId]);
-      await reload();
+      try {
+        const res = await dbq("UPDATE app_bet_book__bets SET status = 'ready', updated_at = ? WHERE id = ?", [now(), betId]);
+        await reload();
+        if (res.changed === 0) showPageError(UNCHANGED);
+      } catch (err) { showPageError(err.message); }
     }
 
     async function settleBet(betId, winners, summary) {
@@ -350,10 +371,15 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
         if (already.has(participantId)) continue;
         await appendRecord("settlement_winners", { bet_id: betId, participant_id: participantId });
       }
-      await dbq(
+      const res = await dbq(
         "UPDATE app_bet_book__bets SET status = 'settled', resolved_at = ?, resolved_by = ?, outcome_summary = ?, updated_at = ? WHERE id = ?",
         [at, currentId(), summary.trim(), at, betId]
       );
+      // Nothing settled means nothing to record or announce.
+      if (res.changed === 0) {
+        await reload();
+        throw new Error(UNCHANGED);
+      }
       await appendRecord("settlement_votes", { bet_id: betId, vote: "settled", notes: summary.trim() });
       // Settlement is the only transition worth the bus: every status a bet can
       // hold is in everyone_values, so an outcome is already household-readable.
@@ -369,8 +395,11 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
     async function voidBet(betId) {
       const ok = await hubConfirm("Void this bet?", { description: "It will stay in history, but nobody gets a win or loss.", confirmLabel: "Void bet" });
       if (!ok) return;
-      await dbq("UPDATE app_bet_book__bets SET status = 'voided', updated_at = ? WHERE id = ?", [now(), betId]);
-      await reload();
+      try {
+        const res = await dbq("UPDATE app_bet_book__bets SET status = 'voided', updated_at = ? WHERE id = ?", [now(), betId]);
+        await reload();
+        if (res.changed === 0) showPageError(UNCHANGED);
+      } catch (err) { showPageError(err.message); }
     }
 
     async function reload() {
@@ -389,6 +418,12 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
     }
 
     function render() {
+      newBetBtn.hidden = loadFailed;
+      if (loadFailed) {
+        root.innerHTML = `<div class="load-error" data-testid="load-error" role="alert"><span>Couldn’t load the bets.</span> <button type="button" class="load-error-retry" data-testid="load-retry">Try again</button></div>`;
+        root.querySelector('[data-testid="load-retry"]').addEventListener("click", firstLoad);
+        return;
+      }
       const stats = appStats(bets);
       const selected = bets.find(b => b.id === selectedId) ?? null;
       root.innerHTML = `
@@ -760,8 +795,17 @@ let searchQ = "";       // in-app search (see logic.js searchableFields)
       box.textContent = message;
     }
 
-    await loadMembers();
-    await reload();
+    async function firstLoad() {
+      try {
+        await loadMembers();
+        await loadData();
+        loadFailed = false;
+      } catch {
+        loadFailed = true;
+      }
+      render();
+    }
+    await firstLoad();
   </script>
 </body>
 </html>

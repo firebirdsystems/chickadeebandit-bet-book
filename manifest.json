@@ -36,9 +36,6 @@
     }
   },
   "db_plaintext_columns": ["terms_type", "dispute_rule", "kind", "vote"],
-  "resource_limits": {
-    "max_db_bytes": 52428800
-  },
   "agenda": {
     "kind": "reminder",
     "label": "Bet review",

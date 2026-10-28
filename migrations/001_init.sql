@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS app_bet_book__bets (
-  id TEXT PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   category TEXT NOT NULL DEFAULT 'wild_claims' CHECK (category IN ('family', 'sports', 'pop_culture', 'house_projects', 'weather', 'finance', 'wild_claims')),
   terms_type TEXT NOT NULL DEFAULT 'bragging_rights' CHECK (terms_type IN ('bragging_rights', 'custom_prize', 'money', 'favor_chore', 'meal_treat', 'other')),
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS app_bet_book__bets (
 );
 
 CREATE TABLE IF NOT EXISTS app_bet_book__participants (
-  id TEXT PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   bet_id TEXT NOT NULL,
   member_id TEXT,
   member_name TEXT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS app_bet_book__participants (
 );
 
 CREATE TABLE IF NOT EXISTS app_bet_book__evidence (
-  id TEXT PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   bet_id TEXT NOT NULL,
   kind TEXT NOT NULL DEFAULT 'note' CHECK (kind IN ('note', 'link', 'photo', 'screenshot')),
   label TEXT NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS app_bet_book__evidence (
 );
 
 CREATE TABLE IF NOT EXISTS app_bet_book__amendments (
-  id TEXT PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   bet_id TEXT NOT NULL,
   body TEXT NOT NULL,
   added_by TEXT,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS app_bet_book__amendments (
 );
 
 CREATE TABLE IF NOT EXISTS app_bet_book__settlement_votes (
-  id TEXT PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   bet_id TEXT NOT NULL,
   member_id TEXT,
   vote TEXT NOT NULL CHECK (vote IN ('settled', 'voided', 'agree', 'disagree')),
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS app_bet_book__settlement_votes (
 );
 
 CREATE TABLE IF NOT EXISTS app_bet_book__settlement_winners (
-  id TEXT PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   bet_id TEXT NOT NULL,
   participant_id TEXT NOT NULL,
   marked_by TEXT,
